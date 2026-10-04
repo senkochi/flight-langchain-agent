@@ -1,0 +1,21 @@
+# Agents, Scratch & Docs
+.agents/
+.scratch/
+docs/
+skills-lock.json
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments & secrets
+.env
+.venv/
+env/
+venv/
+ENV/
