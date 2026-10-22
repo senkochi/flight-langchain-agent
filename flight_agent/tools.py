@@ -1,7 +1,10 @@
 from __future__ import annotations
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from langchain_core.tools import tool
+
+if TYPE_CHECKING:
+    from flight_agent.memory import PersistentMemoryStore
 
 class MockFlightDatabase:
     """In-memory flight and booking repository."""
@@ -203,6 +206,7 @@ class MockFlightDatabase:
         booking = {
             "booking_id": booking_id,
             "flight_id": flight_id,
+            "airline": flight["airline"],
             "passenger_name": passenger_name,
             "origin": flight["origin"],
             "destination": flight["destination"],
@@ -279,3 +283,26 @@ def create_flight_tools(db: MockFlightDatabase):
         confirm_payment_and_issue_ticket,
         cancel_booking,
     ]
+
+
+def create_memory_tools(memory_store: Any):
+    """Creates LangChain tools for persistent memory convention management."""
+
+    @tool
+    def save_project_convention(
+        key: str,
+        value: str,
+        description: Optional[str] = None,
+        category: str = "project_convention",
+    ) -> Dict[str, Any]:
+        """Save or update a project convention into persistent memory outside conversation history."""
+        rec = memory_store.save_convention(key, value, description, category)
+        return {"status": "SUCCESS", "data": rec.model_dump(), "hint": "Convention successfully persisted."}
+
+    @tool
+    def get_project_conventions() -> Dict[str, Any]:
+        """Retrieve all active project conventions from persistent memory."""
+        records = [c.model_dump() for c in memory_store.list_conventions()]
+        return {"status": "SUCCESS", "data": records, "hint": f"Retrieved {len(records)} active conventions."}
+
+    return [save_project_convention, get_project_conventions]

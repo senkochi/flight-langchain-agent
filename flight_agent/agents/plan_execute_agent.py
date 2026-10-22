@@ -11,6 +11,7 @@ class PlanExecuteState(TypedDict):
     step_results: List[Dict[str, Any]]
     last_flight_id: Optional[str]
     last_hold_id: Optional[str]
+    preferred_airline: Optional[str]
     completed: bool
 
 def build_plan_execute_graph(
@@ -70,8 +71,9 @@ def build_plan_execute_graph(
             "plan": plan,
             "current_step_index": 0,
             "step_results": [],
-            "last_flight_id": None,
+            "last_flight_id": state.get("last_flight_id"),
             "last_hold_id": None,
+            "preferred_airline": state.get("preferred_airline"),
             "completed": False,
         }
 
@@ -110,7 +112,18 @@ def build_plan_execute_graph(
         if tool_name == "search_flights" and last_out.get("status") == "SUCCESS":
             flights = last_out.get("data", [])
             if flights:
-                updates["last_flight_id"] = flights[0]["flight_id"]
+                pref = state.get("preferred_airline")
+                chosen_flight = flights[0]["flight_id"]
+                if pref:
+                    pref_lower = pref.lower()
+                    for f in flights:
+                        if (
+                            pref_lower in f.get("airline", "").lower()
+                            or pref_lower in f.get("flight_id", "").lower()
+                        ):
+                            chosen_flight = f["flight_id"]
+                            break
+                updates["last_flight_id"] = chosen_flight
 
         elif tool_name == "hold_booking" and last_out.get("status") == "SUCCESS":
             updates["last_hold_id"] = last_out.get("data", {}).get("hold_id")

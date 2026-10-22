@@ -46,6 +46,7 @@ class FlightRecord(BaseModel):
 class BookingRecord(BaseModel):
     booking_id: str
     flight_id: str
+    airline: Optional[str] = None
     passenger_name: str
     origin: str
     destination: str
@@ -114,3 +115,4 @@ class ExecutionResult(BaseModel):
     handoff: Optional[HandoffSummary] = None
     metrics: ExecutionMetrics = Field(default_factory=ExecutionMetrics)
     trace: List[TraceStep] = Field(default_factory=list)
+    injected_memory: Optional[str] = None

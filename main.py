@@ -32,6 +32,7 @@ from flight_agent.models import (
     ExecutionStatus,
 )
 from flight_agent.tools import MockFlightDatabase
+from flight_agent.memory import PersistentMemoryStore
 from flight_agent.harness import FlightBookingHarness
 from flight_agent.benchmark import run_full_benchmark, generate_markdown_report
 
@@ -42,6 +43,7 @@ def print_banner():
     print("  ✓ 4 Lớp Harness: Constraints Data | Code Sensor | Authority | Handoff")
     print("  ✓ 3 Mẫu Thiết Kế: ReAct | Plan-then-Execute | Hybrid Re-planning")
     print("  ✓ 5 Điều Kiện Dừng: Approval | Goal | Loop | Stall | Hard Budget")
+    print("  ✓ Challenge A: Persistent Memory & Cross-Session Convention Lifecycle")
     print("=" * 80)
 
 def run_single_demo():
@@ -242,11 +244,146 @@ def run_comparison():
     """)
     print("=" * 80 + "\n")
 
+def run_persistent_memory_challenge():
+    print("\n" + "=" * 80)
+    print("   CHALLENGE A: PERSISTENT MEMORY & CONVENTION LIFECYCLE VERIFICATION   ")
+    print("=" * 80)
+    print("Mục tiêu theo Slide 14-16: Agent ghi nhớ quy ước dự án qua nhiều session và cập nhật khi quy ước đổi.")
+    print("Checklist 6 tiêu chí: Lưu trữ ngoài history -> Lưu S1 -> Kiểm chứng S2 -> Đổi S3 -> Kiểm chứng S4 -> In context memory")
+    print("-" * 80)
+
+    # Use a clean demo persistent memory store in .scratch
+    storage_path = os.path.join(os.path.dirname(__file__), ".scratch", "demo_persistent_memory.json")
+    if os.path.exists(storage_path):
+        os.remove(storage_path)
+    store = PersistentMemoryStore(storage_path=storage_path)
+
+    def sim_approver(req: ApprovalRequest) -> ApprovalDecision:
+        return ApprovalDecision.approve()
+
+    # =========================================================================
+    # SESSION 1: Thiết lập quy ước dự án trong session đầu tiên (Checklist #1, #2)
+    # =========================================================================
+    print("\n>>> [SESSION 1] THIẾT LẬP QUY ƯỚC DỰ ÁN BAN ĐẦU")
+    harness_s1 = FlightBookingHarness(memory_store=store)
+    rec1 = harness_s1.save_convention(
+        key="preferred_airline",
+        value="Bamboo Airways",
+        description="Chính sách công tác: Ưu tiên chọn Bamboo Airways (QH) cho mọi chuyến bay nội địa.",
+        category="corporate_travel_policy",
+        session_id="session_01",
+    )
+    print(f"  ✓ Đã lưu quy ước vào persistent store độc lập: {storage_path}")
+    print(f"  • Khóa (Key): {rec1.key}")
+    print(f"  • Giá trị (Value): {rec1.value}")
+    print(f"  • Mô tả (Description): {rec1.description}")
+    print(f"  • Phiên bản (Version): v{rec1.version}")
+    print(f"  • Thời gian tạo: {rec1.created_at}")
+
+    # =========================================================================
+    # SESSION 2: Mở session mới và kiểm chứng agent làm theo quy ước cũ (Checklist #3, #6)
+    # =========================================================================
+    print("\n>>> [SESSION 2] MỞ SESSION MỚI (LỊCH SỬ HỘI THOẠI TRỐNG) - KIỂM CHỨNG GHI NHỚ")
+    # Fresh harness instance loading from disk
+    harness_s2 = FlightBookingHarness(memory_store=PersistentMemoryStore(storage_path=storage_path))
+    injected_s2 = harness_s2.get_injected_memory_context()
+    print("  [KIỂM CHỨNG BỘ NHỚ ĐƯỢC INJECT VÀO CONTEXT]")
+    print(injected_s2)
+
+    req_s2 = BookingRequest(
+        passenger_name="Nguyen Van A",
+        origin="SGN",
+        destination="HAN",
+        departure_date="2026-10-15",
+        max_budget=2500000.0,
+        cabin_class="ECONOMY",
+    )
+    print(f"  Yêu cầu từ người dùng: Đặt vé SGN -> HAN, ngày 2026-10-15 cho {req_s2.passenger_name} (KHÔNG ghi rõ hãng bay)")
+    res_s2 = harness_s2.run(
+        pattern=AgentPattern.REACT,
+        request=req_s2,
+        approval_callback=sim_approver,
+    )
+    print(f"  Kết quả thực thi:")
+    print(f"    Trạng thái: {res_s2.status.value}")
+    print(f"    Vé đã xuất: PNR={res_s2.booking.get('booking_id')}, Hãng={res_s2.booking.get('airline')}, Chuyến={res_s2.booking.get('flight_id')}")
+    print(f"    Kiểm chứng Code Sensor: {'ĐẠT CHUẨN' if res_s2.code_verification_passed else 'KHÔNG ĐẠT'}")
+    assert res_s2.booking.get("flight_id") == "QH789", "Agent must pick QH789 based on Session 1 convention!"
+    print("  ✓ XÁC NHẬN: Agent đã tự động chọn Bamboo Airways (QH789) nhờ Persistent Memory!")
+
+    # =========================================================================
+    # SESSION 3: Thay đổi quy ước và cập nhật memory (Checklist #4)
+    # =========================================================================
+    print("\n>>> [SESSION 3] THAY ĐỔI QUY ƯỚC DỰ ÁN VÀ CẬP NHẬT PERSISTENT MEMORY")
+    harness_s3 = FlightBookingHarness(memory_store=PersistentMemoryStore(storage_path=storage_path))
+    rec2 = harness_s3.save_convention(
+        key="preferred_airline",
+        value="Vietnam Airlines",
+        description="Cập nhật chính sách: Chuyển sang ưu tiên Hãng hàng không Quốc gia Vietnam Airlines (VN).",
+        category="corporate_travel_policy",
+        session_id="session_03",
+    )
+    print(f"  ✓ Đã cập nhật quy ước trong persistent store:")
+    print(f"  • Khóa (Key): {rec2.key}")
+    print(f"  • Giá trị MỚI (New Value): {rec2.value}")
+    print(f"  • Mô tả: {rec2.description}")
+    print(f"  • Phiên bản mới: v{rec2.version} (tự động tăng version, ghi đè quy ước cũ)")
+    print(f"  • Cập nhật lúc: {rec2.updated_at}")
+
+    # =========================================================================
+    # SESSION 4: Mở session mới và kiểm chứng agent dùng quy ước mới (Checklist #5, #6)
+    # =========================================================================
+    print("\n>>> [SESSION 4] MỞ SESSION TIẾP THEO (LỊCH SỬ MỚI) - KIỂM CHỨNG QUY ƯỚC MỚI")
+    harness_s4 = FlightBookingHarness(memory_store=PersistentMemoryStore(storage_path=storage_path))
+    injected_s4 = harness_s4.get_injected_memory_context()
+    print("  [KIỂM CHỨNG BỘ NHỚ ĐƯỢC INJECT VÀO CONTEXT]")
+    print(injected_s4)
+
+    req_s4 = BookingRequest(
+        passenger_name="Nguyen Van A",
+        origin="SGN",
+        destination="HAN",
+        departure_date="2026-10-15",
+        max_budget=2500000.0,
+        cabin_class="ECONOMY",
+    )
+    print(f"  Yêu cầu từ người dùng: Đặt vé SGN -> HAN, ngày 2026-10-15 cho {req_s4.passenger_name} (KHÔNG ghi rõ hãng bay)")
+    res_s4 = harness_s4.run(
+        pattern=AgentPattern.REACT,
+        request=req_s4,
+        approval_callback=sim_approver,
+    )
+    print(f"  Kết quả thực thi:")
+    print(f"    Trạng thái: {res_s4.status.value}")
+    print(f"    Vé đã xuất: PNR={res_s4.booking.get('booking_id')}, Hãng={res_s4.booking.get('airline')}, Chuyến={res_s4.booking.get('flight_id')}")
+    print(f"    Kiểm chứng Code Sensor: {'ĐẠT CHUẨN' if res_s4.code_verification_passed else 'KHÔNG ĐẠT'}")
+    assert res_s4.booking.get("flight_id") == "VN123", "Agent must pick VN123 based on updated convention!"
+    print("  ✓ XÁC NHẬN: Agent đã lập tức tuân thủ quy ước mới (VN123 - Vietnam Airlines), không còn dùng quy ước cũ!")
+
+    # =========================================================================
+    # BẢNG TỔNG KẾT CHECKLIST THỰC HIỆN 6/6
+    # =========================================================================
+    print("\n" + "=" * 80)
+    print("   BẢNG ĐỐI CHIẾU TIÊU CHÍ HOÀN THÀNH CHALLENGE A (CHECKLIST 6/6)   ")
+    print("=" * 80)
+    checklist = [
+        ("Tạo cơ chế lưu persistent memory ngoài lịch sử hội thoại hiện tại", "ĐẠT (Store JSON độc lập tại .scratch/demo_persistent_memory.json)"),
+        ("Lưu một quy ước dự án trong session đầu tiên", "ĐẠT (Session 1: preferred_airline = Bamboo Airways, v1)"),
+        ("Mở session mới và chứng minh agent vẫn làm theo quy ước cũ", "ĐẠT (Session 2: Fresh history, Agent tự chọn chuyến QH789)"),
+        ("Thay đổi quy ước và cập nhật memory", "ĐẠT (Session 3: preferred_airline = Vietnam Airlines, v2)"),
+        ("Mở session mới tiếp theo và chứng minh agent dùng quy ước mới", "ĐẠT (Session 4: Fresh history, Agent tự chọn chuyến VN123)"),
+        ("In nội dung memory đã inject vào context để kiểm chứng", "ĐẠT (Injected Context block được in trực tiếp ở từng Session)"),
+    ]
+    for idx, (item, status) in enumerate(checklist, 1):
+        print(f"  [{idx}/6] [x] {item:<65} -> {status}")
+    print("=" * 80 + "\n")
+
 def main():
     parser = argparse.ArgumentParser(description="SE373 Flight Booking Agent")
     parser.add_argument("-i", "--interactive", action="store_true", help="Chạy chế độ đặt vé tương tác trực tiếp qua console")
     parser.add_argument("-b", "--benchmark", action="store_true", help="Chạy bộ benchmark đánh giá định lượng 15 lượt")
     parser.add_argument("-c", "--compare", action="store_true", help="So sánh chi tiết các bước quyết định giữa 3 Agents khi gặp sự cố hết vé")
+    parser.add_argument("-m", "--memory", action="store_true", help="Chạy kiểm chứng Challenge A: Persistent Memory qua vòng đời 4 sessions")
     args = parser.parse_args()
 
     print_banner()
@@ -254,11 +391,14 @@ def main():
         run_interactive()
     elif args.compare:
         run_comparison()
+    elif args.memory:
+        run_persistent_memory_challenge()
     elif args.benchmark:
         run_evaluation()
     else:
-        # Default: demo + benchmark
+        # Default: demo + memory challenge + benchmark
         run_single_demo()
+        run_persistent_memory_challenge()
         run_evaluation()
 
 if __name__ == "__main__":

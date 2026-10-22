@@ -16,6 +16,7 @@ class HybridAgentState(TypedDict):
     needs_replan: bool
     replan_reason: Optional[str]
     available_candidates: List[Dict[str, Any]]
+    preferred_airline: Optional[str]
     completed: bool
 
 def build_hybrid_graph(
@@ -75,13 +76,14 @@ def build_hybrid_graph(
             "plan": plan,
             "current_step_index": 0,
             "step_results": [],
-            "last_flight_id": "VN123",
+            "last_flight_id": state.get("last_flight_id") or "VN123",
             "last_hold_id": None,
             "failed_flight_ids": [],
             "replan_count": 0,
             "needs_replan": False,
             "replan_reason": None,
             "available_candidates": [],
+            "preferred_airline": state.get("preferred_airline"),
             "completed": False,
         }
 
@@ -122,7 +124,18 @@ def build_hybrid_graph(
             flights = last_out.get("data", [])
             updates["available_candidates"] = flights
             if flights:
-                updates["last_flight_id"] = flights[0]["flight_id"]
+                pref = state.get("preferred_airline")
+                chosen_flight = flights[0]["flight_id"]
+                if pref:
+                    pref_lower = pref.lower()
+                    for f in flights:
+                        if (
+                            pref_lower in f.get("airline", "").lower()
+                            or pref_lower in f.get("flight_id", "").lower()
+                        ):
+                            chosen_flight = f["flight_id"]
+                            break
+                updates["last_flight_id"] = chosen_flight
 
         elif tool_name == "hold_booking" and last_out.get("status") == "SUCCESS":
             updates["last_hold_id"] = last_out.get("data", {}).get("hold_id")

@@ -2,7 +2,7 @@
 
 **Môn học**: SE373 - Kỹ thuật xây dựng hệ thống Agentic AI (Buổi 03)  
 **Chủ đề**: Dựng Agent đặt vé máy bay bằng LangChain/LangGraph với 4 lớp Harness & 3 Mẫu thiết kế suy luận  
-**Thời gian đánh giá**: 2026-10-04 21:15:34  
+**Thời gian đánh giá**: 2026-10-22 23:25:29  
 
 ---
 
@@ -44,29 +44,29 @@ Thử nghiệm được thực hiện trên **5 kịch bản chuẩn hóa** (t�
 
 | Mẫu Thiết Kế | Tỷ Lệ Hoàn Thành Nhiệm Vụ | Số Bước Trung Bình (Steps) | Lượng Token Trung Bình | Thời Gian Trung Bình (s) | Tuân Thủ Ràng Buộc | Số Lần Re-plan |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **react** | 100.0% | 3.2 | 1640.0 | 0.0051s | 100.0% | 0 |
-| **plan_then_execute** | 50.0% | 2.4 | 1280.0 | 0.0041s | 100.0% | 0 |
-| **hybrid** | 100.0% | 3.2 | 1640.0 | 0.0061s | 100.0% | 2 |
+| **react** | 100.0% | 3.2 | 1640.0 | 0.0069s | 100.0% | 0 |
+| **plan_then_execute** | 50.0% | 2.4 | 1280.0 | 0.0043s | 100.0% | 0 |
+| **hybrid** | 100.0% | 3.2 | 1640.0 | 0.0065s | 100.0% | 2 |
 
 ### Chi Tiết Từng Lượt Chạy (15 Runs)
 
 | Kịch Bản | Mẫu Thiết Kế | Trạng Thái Kết Quả | Mã Vé / Chuyến Bay | Số Bước | Tokens | Thời Gian (s) | Handoff |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
-| Kịch bản 1: Luồng chuẩn (... | `react` | `SUCCESS` | PNR-EAB63A (VN123) | 4 | 2000 | 0.008s | Không |
-| Kịch bản 1: Luồng chuẩn (... | `plan_then_execute` | `SUCCESS` | PNR-E6C6FB (VN123) | 4 | 2000 | 0.0064s | Không |
-| Kịch bản 1: Luồng chuẩn (... | `hybrid` | `SUCCESS` | PNR-EA3B73 (VN123) | 4 | 2000 | 0.0064s | Không |
-| Kịch bản 2: Phục hồi khi ... | `react` | `SUCCESS` | PNR-F609E7 (QH789) | 5 | 2450 | 0.0058s | Không |
-| Kịch bản 2: Phục hồi khi ... | `plan_then_execute` | `FAILED` | None | 2 | 1100 | 0.0034s | Có |
-| Kịch bản 2: Phục hồi khi ... | `hybrid` | `SUCCESS` | PNR-44151C (QH789) | 6 | 2900 | 0.008s | Không |
-| Kịch bản 3: Từ chối tại c... | `react` | `APPROVAL_REJECTED` | None | 5 | 2450 | 0.0058s | Có |
-| Kịch bản 3: Từ chối tại c... | `plan_then_execute` | `APPROVAL_REJECTED` | None | 4 | 2000 | 0.0041s | Có |
-| Kịch bản 3: Từ chối tại c... | `hybrid` | `APPROVAL_REJECTED` | None | 4 | 2000 | 0.0063s | Có |
-| Kịch bản 4: Tuyến bay khô... | `react` | `FAILED` | None | 1 | 650 | 0.0028s | Có |
-| Kịch bản 4: Tuyến bay khô... | `plan_then_execute` | `FAILED` | None | 1 | 650 | 0.0031s | Có |
-| Kịch bản 4: Tuyến bay khô... | `hybrid` | `FAILED` | None | 1 | 650 | 0.0049s | Có |
-| Kịch bản 5: Ngân sách trầ... | `react` | `FAILED` | None | 1 | 650 | 0.0029s | Có |
-| Kịch bản 5: Ngân sách trầ... | `plan_then_execute` | `FAILED` | None | 1 | 650 | 0.0033s | Có |
-| Kịch bản 5: Ngân sách trầ... | `hybrid` | `FAILED` | None | 1 | 650 | 0.0047s | Có |
+| Kịch bản 1: Luồng chuẩn (... | `react` | `SUCCESS` | PNR-4E52D6 (VN123) | 4 | 2000 | 0.0148s | Không |
+| Kịch bản 1: Luồng chuẩn (... | `plan_then_execute` | `SUCCESS` | PNR-F3282F (VN123) | 4 | 2000 | 0.0049s | Không |
+| Kịch bản 1: Luồng chuẩn (... | `hybrid` | `SUCCESS` | PNR-639A31 (VN123) | 4 | 2000 | 0.0068s | Không |
+| Kịch bản 2: Phục hồi khi ... | `react` | `SUCCESS` | PNR-B09EDE (QH789) | 5 | 2450 | 0.0061s | Không |
+| Kịch bản 2: Phục hồi khi ... | `plan_then_execute` | `FAILED` | None | 2 | 1100 | 0.0044s | Có |
+| Kịch bản 2: Phục hồi khi ... | `hybrid` | `SUCCESS` | PNR-165ACE (QH789) | 6 | 2900 | 0.0085s | Không |
+| Kịch bản 3: Từ chối tại c... | `react` | `APPROVAL_REJECTED` | None | 5 | 2450 | 0.0071s | Có |
+| Kịch bản 3: Từ chối tại c... | `plan_then_execute` | `APPROVAL_REJECTED` | None | 4 | 2000 | 0.0048s | Có |
+| Kịch bản 3: Từ chối tại c... | `hybrid` | `APPROVAL_REJECTED` | None | 4 | 2000 | 0.0069s | Có |
+| Kịch bản 4: Tuyến bay khô... | `react` | `FAILED` | None | 1 | 650 | 0.0033s | Có |
+| Kịch bản 4: Tuyến bay khô... | `plan_then_execute` | `FAILED` | None | 1 | 650 | 0.0036s | Có |
+| Kịch bản 4: Tuyến bay khô... | `hybrid` | `FAILED` | None | 1 | 650 | 0.0052s | Có |
+| Kịch bản 5: Ngân sách trầ... | `react` | `FAILED` | None | 1 | 650 | 0.0032s | Có |
+| Kịch bản 5: Ngân sách trầ... | `plan_then_execute` | `FAILED` | None | 1 | 650 | 0.0038s | Có |
+| Kịch bản 5: Ngân sách trầ... | `hybrid` | `FAILED` | None | 1 | 650 | 0.0052s | Có |
 
 ---
 
@@ -87,3 +87,20 @@ Thử nghiệm được thực hiện trên **5 kịch bản chuẩn hóa** (t�
 2. **Plan-then-Execute** phù hợp cho các quy trình tuyến tính cố định nhưng thất bại khi có biến động bất ngờ (hết vé, chuyến bay bị hủy).
 3. **ReAct** rất linh hoạt nhưng cần được kiểm soát chặt chẽ bởi **Harness** để tránh lặp vô hạn và trôi ngân sách.
 4. **Harness** là thành phần sống còn của hệ thống Agentic AI trong sản xuất: đảm bảo an toàn giao dịch qua chốt kiểm quyền con người và bảo vệ ngân sách tính toán bằng 5 điều kiện dừng khách quan.
+
+---
+
+## 6. Đánh Giá Challenge A: Persistent Memory (Kiểm Chứng 6/6 Tiêu Chí)
+
+Hệ thống đã triển khai hoàn chỉnh vòng đời Persistent Memory (Slide 14-16) độc lập với lịch sử hội thoại:
+
+| Tiêu Chí Đánh Giá (Checklist) | Kết Quả Thực Nghiệm | Trạng Thái |
+| :--- | :--- | :---: |
+| 1. Tạo cơ chế lưu persistent memory ngoài lịch sử hội thoại | Sử dụng `PersistentMemoryStore` lưu JSON độc lập tại `.scratch/persistent_memory.json` | **ĐẠT** |
+| 2. Lưu quy ước dự án trong session đầu tiên | Thiết lập quy ước `preferred_airline = Bamboo Airways` (v1) | **ĐẠT** |
+| 3. Mở session mới và kiểm chứng agent làm theo quy ước cũ | Session 2 (fresh history): Agent tự động chọn chuyến `QH789` theo quy ước | **ĐẠT** |
+| 4. Thay đổi quy ước và cập nhật memory | Cập nhật quy ước `preferred_airline = Vietnam Airlines` (v2, ghi đè quy ước cũ) | **ĐẠT** |
+| 5. Mở session mới tiếp theo và chứng minh agent dùng quy ước mới | Session 4 (fresh history): Agent tự động chọn chuyến `VN123` của Vietnam Airlines | **ĐẠT** |
+| 6. In nội dung memory đã inject vào context để kiểm chứng | Injected context memory block được xuất minh bạch ra console và trace log | **ĐẠT** |
+
+> Chi tiết báo cáo lý thuyết và kiểm nghiệm đầy đủ xem tại file: [report_challenge_a.md](report_challenge_a.md).

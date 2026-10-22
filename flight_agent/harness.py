@@ -2,7 +2,7 @@ from __future__ import annotations
 import json
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from langchain_core.messages import HumanMessage, ToolMessage
+from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage
 
 from flight_agent.models import (
     AgentPattern,
@@ -19,6 +19,7 @@ from flight_agent.models import (
 from flight_agent.tools import MockFlightDatabase
 from flight_agent.sensor import verify_booking_completion
 from flight_agent.llm import DeterministicFlightModel
+from flight_agent.memory import PersistentMemoryStore, ConventionRecord
 from flight_agent.agents.react_agent import build_react_graph
 from flight_agent.agents.plan_execute_agent import build_plan_execute_graph
 from flight_agent.agents.hybrid_agent import build_hybrid_graph
@@ -32,15 +33,39 @@ class FlightBookingHarness:
     3. Authority Control (Pre-tool Human Approval hook for payment/issuance)
     4. 30-Second State Handoff
     5. 5-Stage Termination Pipeline (Approval -> Goal -> Loop -> Stall -> Budget)
+    6. Persistent Memory Context Injection & Lifecycle Management (Challenge A)
     """
 
     def __init__(
         self,
         db: Optional[MockFlightDatabase] = None,
         model: Optional[Any] = None,
+        memory_store: Optional[PersistentMemoryStore] = None,
     ):
         self.db = db if db is not None else MockFlightDatabase()
         self.model = model if model is not None else DeterministicFlightModel()
+        self.memory_store = memory_store if memory_store is not None else PersistentMemoryStore()
+
+    def save_convention(
+        self,
+        key: str,
+        value: Any,
+        description: Optional[str] = None,
+        category: str = "project_convention",
+        session_id: Optional[str] = None,
+    ) -> ConventionRecord:
+        """Saves a project convention into persistent memory outside conversation history."""
+        return self.memory_store.save_convention(
+            key=key,
+            value=value,
+            description=description,
+            category=category,
+            session_id=session_id,
+        )
+
+    def get_injected_memory_context(self) -> str:
+        """Returns the formatted persistent memory text injected into LLM context."""
+        return self.memory_store.format_for_context()
 
     def run(
         self,
@@ -156,6 +181,19 @@ class FlightBookingHarness:
                     if out["status"] == "SUCCESS":
                         current_hold_id = None
                         made_progress = True
+                elif tool_name == "save_project_convention":
+                    rec = self.memory_store.save_convention(
+                        key=args["key"],
+                        value=args["value"],
+                        description=args.get("description"),
+                        category=args.get("category", "project_convention"),
+                    )
+                    out = {"status": "SUCCESS", "data": rec.model_dump(), "hint": "Convention successfully persisted in long-term memory."}
+                    made_progress = True
+                elif tool_name == "get_project_conventions":
+                    convs = [c.model_dump() for c in self.memory_store.list_conventions()]
+                    out = {"status": "SUCCESS", "data": convs, "hint": f"Found {len(convs)} active conventions in persistent memory."}
+                    made_progress = True
                 else:
                     out = {"status": "FAILED", "error_code": "UNKNOWN_TOOL", "hint": "Tool not found"}
 
@@ -205,6 +243,26 @@ class FlightBookingHarness:
 
             return tool_messages
 
+        # Inject persistent memory into context (Slide 14-16)
+        injected_memory = self.get_injected_memory_context()
+        if injected_memory:
+            trace.append(
+                TraceStep(
+                    step_number=0,
+                    pattern="persistent_memory_injection",
+                    thought=f"Injected persistent memory into session context:\n{injected_memory}",
+                )
+            )
+
+        # Detect candidate flight based on persistent convention
+        pref_conv = self.memory_store.get_convention("preferred_airline") if self.memory_store else None
+        pref_airline = str(pref_conv.value).lower() if pref_conv else ""
+        candidate_flight = "VN123"
+        if "bamboo" in pref_airline or "qh" in pref_airline:
+            candidate_flight = "QH789"
+        elif "vietjet" in pref_airline or "vj" in pref_airline:
+            candidate_flight = "VJ456"
+
         # Dispatch based on pattern
         if pattern == AgentPattern.REACT:
             app = build_react_graph(self.model, tool_dispatcher, should_halt=should_halt)
@@ -213,7 +271,11 @@ class FlightBookingHarness:
                 f"on {request.departure_date} for {request.passenger_name} "
                 f"under {request.max_budget:,.0f} VND with {request.cabin_class} class."
             )
-            initial_state = {"messages": [HumanMessage(content=user_prompt)]}
+            messages = []
+            if injected_memory:
+                messages.append(SystemMessage(content=injected_memory))
+            messages.append(HumanMessage(content=user_prompt))
+            initial_state = {"messages": messages}
             try:
                 final_state = app.invoke(initial_state)
             except Exception as e:
@@ -237,13 +299,15 @@ class FlightBookingHarness:
                 should_halt=should_halt,
                 on_plan_created=on_plan,
             )
+            pref_airline_name = str(pref_conv.value) if pref_conv else None
             initial_state = {
                 "request": request,
                 "plan": [],
                 "current_step_index": 0,
                 "step_results": [],
-                "last_flight_id": None,
+                "last_flight_id": candidate_flight,
                 "last_hold_id": None,
+                "preferred_airline": pref_airline_name,
                 "completed": False,
             }
             try:
@@ -279,18 +343,20 @@ class FlightBookingHarness:
                 should_halt=should_halt,
                 on_plan_created=on_hybrid_plan,
             )
+            pref_airline_name = str(pref_conv.value) if pref_conv else None
             initial_state = {
                 "request": request,
                 "plan": [],
                 "current_step_index": 0,
                 "step_results": [],
-                "last_flight_id": "VN123",
+                "last_flight_id": candidate_flight,
                 "last_hold_id": None,
                 "failed_flight_ids": [],
                 "replan_count": 0,
                 "needs_replan": False,
                 "replan_reason": None,
                 "available_candidates": [],
+                "preferred_airline": pref_airline_name,
                 "completed": False,
             }
             try:
@@ -315,6 +381,7 @@ class FlightBookingHarness:
                     verification_reason=sensor_result.reason,
                     metrics=metrics,
                     trace=trace,
+                    injected_memory=injected_memory,
                 )
             else:
                 metrics.constraint_violations += 1
@@ -325,6 +392,7 @@ class FlightBookingHarness:
                     verification_reason=sensor_result.reason,
                     metrics=metrics,
                     trace=trace,
+                    injected_memory=injected_memory,
                 )
 
         # Check if stopped by approval rejection
@@ -367,4 +435,5 @@ class FlightBookingHarness:
             handoff=handoff,
             metrics=metrics,
             trace=trace,
+            injected_memory=injected_memory,
         )

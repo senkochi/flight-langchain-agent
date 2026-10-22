@@ -74,14 +74,20 @@ class DeterministicFlightModel(BaseChatModel):
                 )
             )
 
-        # 2. Extract constraints from conversation history
+        # 2. Extract constraints and persistent conventions from conversation context
         origin = "SGN"
         destination = "HAN"
         date = "2026-10-15"
         passenger = "Nguyen Van A"
         max_budget = 2500000.0
+        preferred_airline: Optional[str] = None
 
         for msg in messages:
+            content_str = str(msg.content)
+            if "preferred_airline:" in content_str:
+                match_pref = re.search(r"preferred_airline:\s*([^\n\r•\(\]]+)", content_str)
+                if match_pref:
+                    preferred_airline = match_pref.group(1).strip()
             if isinstance(msg, HumanMessage):
                 text = msg.content
                 match_route = re.search(r"([A-Z]{3})\s*(?:to|->|đến)\s*([A-Z]{3})", text, re.IGNORECASE)
@@ -119,9 +125,26 @@ class DeterministicFlightModel(BaseChatModel):
                         )
                     )
                 target_flight = flights[0]["flight_id"]
+                selection_reason = ""
+                if preferred_airline:
+                    pref_lower = preferred_airline.lower()
+                    for f in flights:
+                        airline_lower = f.get("airline", "").lower()
+                        flight_code = f.get("flight_id", "").lower()
+                        if (
+                            pref_lower in airline_lower
+                            or (pref_lower.startswith("bamboo") and "bamboo" in airline_lower)
+                            or (pref_lower.startswith("vietnam") and "vietnam" in airline_lower)
+                            or (pref_lower.startswith("vietjet") and "vietjet" in airline_lower)
+                            or (pref_lower in flight_code)
+                        ):
+                            target_flight = f["flight_id"]
+                            selection_reason = f" Following persistent convention (preferred_airline: {preferred_airline}), selecting flight {target_flight} ({f.get('airline')})."
+                            break
+
                 return self._wrap(
                     AIMessage(
-                        content=f"Thought: Found {len(flights)} flights. Inspecting seat availability for flight {target_flight}.",
+                        content=f"Thought: Found {len(flights)} flights.{selection_reason} Inspecting seat availability for flight {target_flight}.",
                         tool_calls=[
                             {
                                 "name": "check_seat_availability",

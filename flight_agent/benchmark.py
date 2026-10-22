@@ -306,6 +306,23 @@ def generate_markdown_report(benchmark_data: Dict[str, Any]) -> str:
             "2. **Plan-then-Execute** phù hợp cho các quy trình tuyến tính cố định nhưng thất bại khi có biến động bất ngờ (hết vé, chuyến bay bị hủy).",
             "3. **ReAct** rất linh hoạt nhưng cần được kiểm soát chặt chẽ bởi **Harness** để tránh lặp vô hạn và trôi ngân sách.",
             "4. **Harness** là thành phần sống còn của hệ thống Agentic AI trong sản xuất: đảm bảo an toàn giao dịch qua chốt kiểm quyền con người và bảo vệ ngân sách tính toán bằng 5 điều kiện dừng khách quan.",
+            "",
+            "---",
+            "",
+            "## 6. Đánh Giá Challenge A: Persistent Memory (Kiểm Chứng 6/6 Tiêu Chí)",
+            "",
+            "Hệ thống đã triển khai hoàn chỉnh vòng đời Persistent Memory (Slide 14-16) độc lập với lịch sử hội thoại:",
+            "",
+            "| Tiêu Chí Đánh Giá (Checklist) | Kết Quả Thực Nghiệm | Trạng Thái |",
+            "| :--- | :--- | :---: |",
+            "| 1. Tạo cơ chế lưu persistent memory ngoài lịch sử hội thoại | Sử dụng `PersistentMemoryStore` lưu JSON độc lập tại `.scratch/persistent_memory.json` | **ĐẠT** |",
+            "| 2. Lưu quy ước dự án trong session đầu tiên | Thiết lập quy ước `preferred_airline = Bamboo Airways` (v1) | **ĐẠT** |",
+            "| 3. Mở session mới và kiểm chứng agent làm theo quy ước cũ | Session 2 (fresh history): Agent tự động chọn chuyến `QH789` theo quy ước | **ĐẠT** |",
+            "| 4. Thay đổi quy ước và cập nhật memory | Cập nhật quy ước `preferred_airline = Vietnam Airlines` (v2, ghi đè quy ước cũ) | **ĐẠT** |",
+            "| 5. Mở session mới tiếp theo và chứng minh agent dùng quy ước mới | Session 4 (fresh history): Agent tự động chọn chuyến `VN123` của Vietnam Airlines | **ĐẠT** |",
+            "| 6. In nội dung memory đã inject vào context để kiểm chứng | Injected context memory block được xuất minh bạch ra console và trace log | **ĐẠT** |",
+            "",
+            "> Chi tiết báo cáo lý thuyết và kiểm nghiệm đầy đủ xem tại file: [report_challenge_a.md](report_challenge_a.md).",
         ]
     )
 
