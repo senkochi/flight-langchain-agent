@@ -32,7 +32,7 @@ python main.py -m
 * **Session 2**: Mở session mới hoàn toàn (lịch sử rỗng). Người dùng yêu cầu: *"Đặt vé SGN -> HAN ngày 2026-10-15 cho Nguyen Van A"* (hoàn toàn **không nêu tên hãng**). Agent đọc Injected Context, tự động chọn chuyến bay **`QH789` (Bamboo Airways)** và được Code Sensor xác nhận hợp lệ.
 
 <!-- CHỖ CHÈN ẢNH 1: Chụp terminal chạy Session 1 và Session 2 -->
-![Minh chứng Session 1 và Session 2](docs/screenshots/01_session_1_2.png)
+![Minh chứng Session 1 và Session 2](screenshots/01_session_1_2.png)
 *(Hình 1: Session 1 lưu quy ước Bamboo Airways; Session 2 mở mới, inject context và tự động chọn chuyến QH789)*
 
 ---
@@ -42,7 +42,7 @@ python main.py -m
 * **Session 4**: Mở session mới tiếp theo (lịch sử rỗng). Cùng câu lệnh đặt vé, Agent đọc Injected Context mới và lập tức chuyển sang chọn chuyến **`VN123` (Vietnam Airlines)** thay vì tiếp tục dùng Bamboo Airways.
 
 <!-- CHỖ CHÈN ẢNH 2: Chụp terminal chạy Session 3, Session 4 và Bảng Checklist 6/6 -->
-![Minh chứng Session 3 và Session 4](docs/screenshots/02_session_3_4.png)
+![Minh chứng Session 3 và Session 4](screenshots/02_session_3_4.png)
 *(Hình 2: Session 3 cập nhật quy ước Vietnam Airlines; Session 4 tự động đổi sang chuyến VN123 và Bảng Checklist 6/6)*
 
 ---
@@ -55,7 +55,7 @@ python -m pytest tests/test_persistent_memory.py -v
 ```
 
 <!-- CHỖ CHÈN ẢNH 3: Chụp terminal chạy pytest pass 4/4 -->
-![Kết quả chạy kiểm thử tự động Pytest](docs/screenshots/03_pytest.png)
+![Kết quả chạy kiểm thử tự động Pytest](screenshots/03_pytest.png)
 *(Hình 3: 4 bài test TDD của Persistent Memory đều đạt 100% PASSED)*
 
 ---
